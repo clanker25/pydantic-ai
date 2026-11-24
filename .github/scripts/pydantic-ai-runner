@@ -1,0 +1,39 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "pydantic-ai-slim[anthropic,logfire,mcp,retries]",
+#   # The file/shell tools (Bash/Read/Write/Edit/Grep/Glob/LS) are backed by
+#   # harness FileSystem/Shell; the adjacent script lock pins the dependency
+#   # graph and hashes.
+#   "pydantic-ai-harness",
+# ]
+#
+# # No workflow runs this script (#12796): the workflows run the shim on the published
+# # engine runtime `.github/workflows/shared/engine-zai.md` pins, which CI's "Import the
+# # gh-aw shim on the pinned engine runtime" step checks. These sources install this
+# # checkout's `pydantic-ai-slim` and harness, so CI's smoke test of this runner cannot
+# # catch a `pydantic_ai` symbol missing from that runtime. Both are editable
+# # because the harness's own workspace source for `pydantic-ai-slim` is, and uv refuses
+# # two sources for one package. The paths are relative to this script.
+# [tool.uv.sources]
+# pydantic-ai-slim = { path = "../../pydantic_ai_slim", editable = true }
+# pydantic-ai-harness = { path = "../../src/pydantic_ai_harness", editable = true }
+# ///
+"""Pydantic AI gh-aw shim launcher.
+
+Thin entry point that defers to the `pydantic_ai_gh_aw_shim` package
+beside this script. The real shim lives in `pydantic_ai_gh_aw_shim.cli`;
+the package's `__main__.py` calls `cli.main()`. This file exists only to
+satisfy gh-aw's expectation of a single executable command (and to
+carry the PEP 723 inline-metadata dependency block for `uv run --script`).
+"""
+import pathlib
+import runpy
+import sys
+
+# `pydantic_ai_gh_aw_shim/` lives next to this script — put its parent on
+# `sys.path` so `runpy.run_module` can find it (and the shim's `from .`
+# relative imports resolve).
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+runpy.run_module("pydantic_ai_gh_aw_shim", run_name="__main__")
